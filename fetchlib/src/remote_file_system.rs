@@ -15,4 +15,6 @@ pub trait RemoteFileSystem {
     }
 
     fn listdir(&self, path: PathBuf) -> Vec<FileMetaData>;
+
+    fn path_exists(&self, path: PathBuf) -> bool;
 }
