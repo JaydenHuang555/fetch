@@ -1,27 +1,25 @@
-use std::net::{Ipv4Addr, SocketAddr};
-
 pub mod options;
 pub mod proj_dir;
 
-use directories::ProjectDirs;
-use fetchlib::inputs::Inputs;
-use fetchlib::{client::Client, key::credentials::Credentials};
-use fetchprofile::manager::ProfileManager;
-use fetchprofile::profile::Profile;
+// use directories::ProjectDirs;
+use fetchlib::key::Secrets;
+use rpassword::read_password;
+
+use clap::Parser;
+use fetchlib::client::Client;
+
+use crate::options::Options;
 
 fn main() {
-    let proj_directory = ProjectDirs::from("com", "Jayden", "fetch").unwrap();
+    // let proj_directory = ProjectDirs::from("com", "Jayden", "fetch").unwrap();
 
-    let inputs = Inputs {
-        addr: SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(10, 16, 78, 2)), 22),
-        credentials: Credentials {
-            username: String::from("lvuser"),
-            password: None,
-        },
-    };
+    let options = Options::parse();
 
-    let path_buff = proj_directory.data_dir().join("profile");
-    let path = path_buff.as_path();
+    let pass_read = read_password().unwrap();
+
+    let pass = Secrets::get_pass(pass_read);
+
+    let inputs = options.convert_to_inputs(pass);
 
     let mut client = Client::spawn(inputs).unwrap();
 

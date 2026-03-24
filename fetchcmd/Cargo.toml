@@ -10,3 +10,4 @@ once_cell = "1.21.4"
 rpassword = "7.4.0"
 serde = {version = "1.0.228", features = ["derive"]}
 fetchprofile = {path = "../fetchprofile"}
+clap = {version = "4.6.0", features = ["derive", "env", "string"]}
