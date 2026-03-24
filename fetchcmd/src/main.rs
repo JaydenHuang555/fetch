@@ -1,31 +1,69 @@
-use std::net::{Ipv4Addr, SocketAddr};
-
-pub mod options;
+pub mod args;
 pub mod proj_dir;
 
+use std::io::{Write, stdout};
+
 use directories::ProjectDirs;
-use fetchlib::inputs::Inputs;
-use fetchlib::{client::Client, key::credentials::Credentials};
+use fetchlib::{key::Secrets, remote_file_system::RemoteFileSystem};
 use fetchprofile::manager::ProfileManager;
-use fetchprofile::profile::Profile;
+use rpassword::read_password;
+
+use clap::Parser;
+use fetchlib::client::Client;
+
+use crate::{
+    args::{FetchArgs, SecondGenerationOptions},
+    constants::INSTANCE,
+    subcommands::generation_options::GenerationOptions,
+};
+
+pub mod constants;
+pub mod subcommands;
+
+use crate::constants::constants_instance;
+
+use subcommands::Subcommands;
+
+fn generation(options: GenerationOptions) {}
+
+fn get_profile_manager() -> ProfileManager {
+    let profile_path_buff = constants_instance!().profiles_path.clone();
+    ProfileManager::load(profile_path_buff.as_path()).unwrap()
+}
+
+fn handle_ssh_second_generation(client: Client, args: FetchArgs) {
+    if let Some(second_gen_opts) = args.second_gen_opts {
+        match second_gen_opts {
+            SecondGenerationOptions::List => {
+                let mut meta_data_list = client.listdir(args.remote_path.unwrap());
+                args.sort_mode.sort(&mut meta_data_list);
+                for e in meta_data_list {
+                    println!("{:?}", e);
+                }
+                println!("Finished");
+            }
+            _ => {}
+        }
+    }
+}
+
+fn fetchcmd(args: FetchArgs) {
+    let profile_manager = get_profile_manager();
+    match args.action {
+        Subcommands::Generation(options) => generation(options),
+        Subcommands::SecureShell(_) | Subcommands::Profile(_) => {
+            print!("Please enter the password: ");
+            stdout().flush().unwrap();
+            let pass = Secrets::get_pass(read_password().unwrap());
+            let inputs = args.action.get_ssh_inputs(profile_manager, pass).unwrap();
+            let client = Client::spawn(&inputs).unwrap();
+            handle_ssh_second_generation(client, args);
+        }
+    }
+}
 
 fn main() {
     let proj_directory = ProjectDirs::from("com", "Jayden", "fetch").unwrap();
-
-    let inputs = Inputs {
-        addr: SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(10, 16, 78, 2)), 22),
-        credentials: Credentials {
-            username: String::from("lvuser"),
-            password: None,
-        },
-    };
-
-    let path_buff = proj_directory.data_dir().join("profile");
-    let path = path_buff.as_path();
-
-    let mut client = Client::spawn(inputs).unwrap();
-
-    let output = client.run_cmd("cd ~; ls ");
-    println!("Exit Code: {}", output.0);
-    println!("Content: {}", output.1);
+    let args = FetchArgs::parse();
+    fetchcmd(args);
 }
