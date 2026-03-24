@@ -1,27 +1,13 @@
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fs;
-use std::io;
-use std::io::Write;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::path::Path;
+pub mod sort;
+
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use clap::Args;
 use clap::Parser;
-use clap::Subcommand;
 use clap::ValueEnum;
 use clap::ValueHint;
-use fetchlib::client::Client;
-use fetchlib::{inputs::Inputs, key::credentials::Credentials};
-use fetchprofile::manager::ProfileManager;
-use fetchprofile::profile::Profile;
-use rpassword::read_password;
 
-use crate::constants::INSTANCE;
-use crate::proj_dir::PROJECT_INSTANCE;
-
+use crate::args::sort::SortMode;
 use crate::subcommands::Subcommands;
 
 #[derive(Clone, ValueEnum, Debug)]
@@ -70,6 +56,10 @@ pub struct FetchArgs {
     #[clap(required_if_eq("post", "download"))]
     #[clap(value_hint = ValueHint::FilePath)]
     pub local_path: Option<PathBuf>,
+
+    #[clap(long)]
+    #[clap(default_value_t = SortMode::LastCreated)]
+    pub sort_mode: SortMode,
 }
 
 impl FetchArgs {}

@@ -1,4 +1,4 @@
-pub mod options;
+pub mod args;
 pub mod proj_dir;
 
 use std::io::{Write, stdout};
@@ -12,8 +12,8 @@ use clap::Parser;
 use fetchlib::client::Client;
 
 use crate::{
+    args::{FetchArgs, SecondGenerationOptions},
     constants::INSTANCE,
-    options::{FetchArgs, SecondGenerationOptions},
     subcommands::generation_options::GenerationOptions,
 };
 
@@ -35,7 +35,8 @@ fn handle_ssh_second_generation(client: Client, args: FetchArgs) {
     if let Some(second_gen_opts) = args.second_gen_opts {
         match second_gen_opts {
             SecondGenerationOptions::List => {
-                let meta_data_list = client.listdir(args.remote_path.unwrap());
+                let mut meta_data_list = client.listdir(args.remote_path.unwrap());
+                args.sort_mode.sort(&mut meta_data_list);
                 for e in meta_data_list {
                     println!("{:?}", e);
                 }
