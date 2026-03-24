@@ -1,0 +1,13 @@
+[package]
+name = "fetchlib"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = {version = "1.0.228", features = ["derive"]}
+ssh2 = "0.9.5"
+ssh-key = {version = "0.6.7", features = ["rand_core", "ed25519", "getrandom", "encryption"]}
+rand = "0.10.0"
+tokio = {version = "1.50.0", features = ["full"]}
+ssh-agent-lib = "0.5.2"
+anyhow = "1.0.102"

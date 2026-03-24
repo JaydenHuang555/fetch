@@ -1,0 +1,12 @@
+[package]
+name = "fetchcmd"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+directories = "6.0.0"
+fetchlib = { path = "../fetchlib/" }
+once_cell = "1.21.4"
+rpassword = "7.4.0"
+serde = {version = "1.0.228", features = ["derive"]}
+fetchprofile = {path = "../fetchprofile"}
