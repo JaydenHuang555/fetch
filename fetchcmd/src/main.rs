@@ -1,7 +1,10 @@
 pub mod args;
 pub mod proj_dir;
 
-use std::io::{Write, stdout};
+use std::{
+    io::{Write, stdout},
+    process::ExitCode,
+};
 
 use directories::ProjectDirs;
 use fetchlib::{key::Secrets, remote_file_system::RemoteFileSystem};
@@ -10,6 +13,7 @@ use rpassword::read_password;
 
 use clap::Parser;
 use fetchlib::client::Client;
+use serde::de;
 
 use crate::{
     args::{FetchArgs, SecondGenerationOptions},
@@ -31,7 +35,7 @@ fn get_profile_manager() -> ProfileManager {
     ProfileManager::load(profile_path_buff.as_path()).unwrap()
 }
 
-fn handle_ssh_second_generation(client: Client, args: FetchArgs) {
+fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitCode> {
     if let Some(second_gen_opts) = args.second_gen_opts {
         match second_gen_opts {
             SecondGenerationOptions::List => {
@@ -40,14 +44,24 @@ fn handle_ssh_second_generation(client: Client, args: FetchArgs) {
                 for e in meta_data_list {
                     println!("{:?}", e);
                 }
-                println!("Finished");
             }
-            _ => {}
+            SecondGenerationOptions::Download => {
+                let remote_path_buff = args.remote_path.unwrap().clone();
+                let local_path_buff = args.local_path.unwrap().clone();
+                let local_path = local_path_buff.as_path();
+                let remote_path = remote_path_buff.as_path();
+                if !client.path_exists(remote_path.to_path_buf()) {
+                    eprintln!("Given path does not exist");
+                    return Some(ExitCode::from(3)); // TODO: add constants for exit codes
+                }
+                client.read_file_to_file(remote_path, local_path);
+            }
         }
     }
+    None
 }
 
-fn fetchcmd(args: FetchArgs) {
+fn fetchcmd(args: FetchArgs) -> ExitCode {
     let profile_manager = get_profile_manager();
     match args.action {
         Subcommands::Generation(options) => generation(options),
@@ -57,13 +71,16 @@ fn fetchcmd(args: FetchArgs) {
             let pass = Secrets::get_pass(read_password().unwrap());
             let inputs = args.action.get_ssh_inputs(profile_manager, pass).unwrap();
             let client = Client::spawn(&inputs).unwrap();
-            handle_ssh_second_generation(client, args);
+            if let Some(exit_code) = handle_ssh_second_generation(client, args) {
+                return exit_code;
+            }
         }
     }
+    ExitCode::SUCCESS
 }
 
-fn main() {
+fn main() -> ExitCode {
     let proj_directory = ProjectDirs::from("com", "Jayden", "fetch").unwrap();
     let args = FetchArgs::parse();
-    fetchcmd(args);
+    fetchcmd(args)
 }
