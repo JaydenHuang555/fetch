@@ -484,6 +484,7 @@ dependencies = [
  "directories",
  "fetchlib",
  "fetchprofile",
+ "lazy_static",
  "once_cell",
  "rpassword",
  "serde",
