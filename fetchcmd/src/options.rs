@@ -1,8 +1,10 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fs;
 use std::io;
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -16,6 +18,7 @@ use fetchprofile::manager::ProfileManager;
 use fetchprofile::profile::Profile;
 use rpassword::read_password;
 
+use crate::constants::INSTANCE;
 use crate::proj_dir::PROJECT_INSTANCE;
 
 #[derive(Subcommand, Debug, Clone)]
@@ -127,8 +130,9 @@ impl Action {
 
     pub fn connect_ssh(&self, inputs: &Inputs) {
         let mut client = Client::spawn(inputs).unwrap();
-        let output = client.run_cmd("cd ~; ls -a");
-        println!("{:?}", output);
+        let constants = INSTANCE.lock().unwrap();
+        let fpath = constants.cache_path.join("recieved");
+        client.read_file_to_file(&Path::new("/home/jshizzle/test.c"), fpath.as_path());
     }
 
     pub fn execute(&self) {

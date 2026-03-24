@@ -10,6 +10,8 @@ use fetchlib::client::Client;
 
 use crate::options::Options;
 
+pub mod constants;
+
 fn main() {
     let proj_directory = ProjectDirs::from("com", "Jayden", "fetch").unwrap();
     let options = Options::parse();
