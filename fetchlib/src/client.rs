@@ -139,4 +139,9 @@ impl RemoteFileSystem for Client {
             .collect();
         output
     }
+
+    fn path_exists(&self, path: PathBuf) -> bool {
+        let sftp = self.session.sftp().unwrap();
+        sftp.stat(path.as_path()).is_ok()
+    }
 }
