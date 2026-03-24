@@ -42,3 +42,22 @@ impl Display for ProfileManagerError {
 }
 
 impl Error for ProfileManagerError {}
+
+#[derive(Debug)]
+pub enum ProfileError {
+    FileIO(io::Error),
+    SerializeErr(serde_json::error::Error),
+    DeserializeErr(serde_json::error::Error),
+}
+
+impl Display for ProfileError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::FileIO(e) => e.fmt(f),
+            Self::SerializeErr(e) => e.fmt(f),
+            Self::DeserializeErr(e) => e.fmt(f),
+        }
+    }
+}
+
+impl Error for ProfileError {}
