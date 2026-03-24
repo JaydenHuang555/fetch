@@ -24,7 +24,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn spawn(inputs: Inputs) -> Result<Client, bool> {
+    pub fn spawn(inputs: &Inputs) -> Result<Client, bool> {
         let stream = TcpStream::connect(inputs.addr).unwrap();
         let mut session = Session::new().unwrap();
         session.set_tcp_stream(stream);
