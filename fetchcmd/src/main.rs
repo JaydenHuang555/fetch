@@ -16,7 +16,7 @@ fn main() {
         addr: SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(10, 16, 78, 2)), 22),
         credentials: Credentials {
             username: String::from("lvuser"),
-            password: Some(String::from("10.16.78.2")),
+            password: None,
         },
     };
 
