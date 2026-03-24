@@ -25,5 +25,12 @@ lazy_static::lazy_static! {
             }
         )
     });
-
 }
+
+macro_rules! constants_instance {
+    () => {
+        INSTANCE.lock().unwrap()
+    };
+}
+
+pub(crate) use constants_instance;

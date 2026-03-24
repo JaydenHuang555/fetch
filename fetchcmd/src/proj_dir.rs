@@ -12,3 +12,9 @@ pub static PROJECT_INSTANCE: Lazy<Mutex<ProjectDirSINGLETON>> = Lazy::new(|| {
         dir: ProjectDirs::from("com", "Jayden", "fetch").unwrap(),
     })
 });
+
+macro_rules! proj_dir {
+    () => {
+        PROJECT_INSTANCE.lock().unwrap().dir
+    };
+}

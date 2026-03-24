@@ -43,7 +43,8 @@ impl ProfileManager {
 
     fn generate(dir: &Path, info: &Path) -> Result<(), ProfileManagerError> {
         if !dir.exists() {
-            if let Err(e) = fs::create_dir(dir) {
+            if let Err(e) = fs::create_dir_all(dir) {
+                println!("Unable to create dir {}", dir.display());
                 return Err(ProfileManagerError::DirectoryIO(e));
             }
         } else if dir.is_file() {
