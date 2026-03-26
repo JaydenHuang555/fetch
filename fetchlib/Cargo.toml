@@ -4,6 +4,9 @@ version = "0.0.1"
 edition = "2024"
 authors = ["Jiei Huang <jaydenkanahuang@outlook.com>"]
 description = "A lib for remote server connection through ssh"
+license = "MIT"
+homepage = "https://github.com/JaydenHuang555/fetch"
+documentation = "https://github.com/JaydenHuang555/fetch" 
 
 [dependencies]
 serde = {version = "1.0.228", features = ["derive"]}
