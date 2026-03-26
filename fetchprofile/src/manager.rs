@@ -1,7 +1,6 @@
 use std::{
     collections::BTreeMap,
     fs,
-    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
 };
 
@@ -78,7 +77,7 @@ impl ProfileManager {
             let entry = output.unwrap();
             match entry.path().extension() {
                 Some(extension) => {
-                    if extension.to_os_string().as_bytes() != b"json" {
+                    if extension.to_os_string().as_encoded_bytes() != b"json" {
                         continue;
                     }
                 }
