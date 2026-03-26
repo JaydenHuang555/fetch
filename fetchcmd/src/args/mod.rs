@@ -1,5 +1,7 @@
+pub mod download_mode;
 pub mod sort;
 
+use crate::args::download_mode::DownloadMode;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -48,8 +50,13 @@ pub struct FetchArgs {
     pub second_gen_opts: Option<SecondGenerationOptions>,
 
     #[clap(long, short)]
+    #[clap(default_value_t = false)]
+    pub size: bool,
+
+    #[clap(long, short)]
     #[clap(required_if_eq("post", "list"))]
     #[clap(required_if_eq("post", "download"))]
+    #[clap(required_if_eq("size", "true"))]
     pub remote_path: Option<PathBuf>,
 
     #[clap(long)]
@@ -58,8 +65,12 @@ pub struct FetchArgs {
     pub local_path: Option<PathBuf>,
 
     #[clap(long)]
-    #[clap(default_value_t = SortMode::LastCreated)]
+    #[clap(default_value_t = SortMode::FirstCreated)]
     pub sort_mode: SortMode,
+
+    #[clap(long)]
+    #[clap(default_value_t = DownloadMode::RemoteFile)]
+    pub download_mode: DownloadMode,
 }
 
 impl FetchArgs {}

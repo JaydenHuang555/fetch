@@ -1,8 +1,8 @@
 use rand::rng;
 use serde::Deserialize;
 use serde::Serialize;
-use ssh_key::PrivateKey;
 use ssh2::Session;
+use ssh_key::PrivateKey;
 
 use std::fs;
 use std::io;
@@ -36,7 +36,6 @@ impl Client {
         session.set_tcp_stream(stream);
         session.handshake().unwrap();
 
-        //        session.userauth_agent(inputs.username.as_str()).unwrap();
         session
             .userauth_password(
                 inputs.credentials.username.as_str(),
