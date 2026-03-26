@@ -478,7 +478,7 @@ dependencies = [
 
 [[package]]
 name = "fetchcmd"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "clap",
  "directories",
@@ -492,7 +492,7 @@ dependencies = [
 
 [[package]]
 name = "fetchlib"
-version = "0.1.0"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "rand 0.10.0",
