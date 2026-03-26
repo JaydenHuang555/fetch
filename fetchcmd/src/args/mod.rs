@@ -1,5 +1,7 @@
+pub mod download_mode;
 pub mod sort;
 
+use crate::args::download_mode::DownloadMode;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -65,6 +67,10 @@ pub struct FetchArgs {
     #[clap(long)]
     #[clap(default_value_t = SortMode::FirstCreated)]
     pub sort_mode: SortMode,
+
+    #[clap(long)]
+    #[clap(default_value_t = DownloadMode::RemoteFile)]
+    pub download_mode: DownloadMode,
 }
 
 impl FetchArgs {}

@@ -1,6 +1,9 @@
-use std::path::PathBuf;
+pub mod error;
+pub mod file;
 
-use crate::metadata::FileMetaData;
+use std::path::{Path, PathBuf};
+
+use crate::{metadata::FileMetaData, remote_file_system::file::FileType};
 
 pub trait RemoteFileSystem {
     fn file_metadata(&self, fpath: PathBuf) -> FileMetaData;
@@ -21,5 +24,10 @@ pub trait RemoteFileSystem {
     fn dirsize(&self, path: PathBuf) -> Option<u64> {
         let meta_data = self.file_metadata(path);
         meta_data.size.clone()
+    }
+
+    fn isdir(&self, path: &Path) -> bool {
+        let meta_data = self.file_metadata(path.to_path_buf());
+        meta_data.ftype == FileType::Directory
     }
 }

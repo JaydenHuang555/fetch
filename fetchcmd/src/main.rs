@@ -3,6 +3,7 @@ pub mod proj_dir;
 
 use std::{
     io::{Write, stdout},
+    path::PathBuf,
     process::ExitCode,
 };
 
@@ -16,7 +17,7 @@ use fetchlib::client::Client;
 use serde::de;
 
 use crate::{
-    args::{FetchArgs, SecondGenerationOptions},
+    args::{FetchArgs, SecondGenerationOptions, download_mode::DownloadMode, sort::SortMode},
     constants::INSTANCE,
     subcommands::generation_options::GenerationOptions,
 };
@@ -35,6 +36,41 @@ fn get_profile_manager() -> ProfileManager {
     ProfileManager::load(profile_path_buff.as_path()).unwrap()
 }
 
+pub fn download(
+    client: Client,
+    download_mode: DownloadMode,
+    local_path: Option<PathBuf>,
+    remote_path: Option<PathBuf>,
+) -> Option<ExitCode> {
+    match download_mode {
+        DownloadMode::RemoteFile => {
+            let local = local_path.unwrap();
+            let remote = remote_path.unwrap();
+            println!("Downloading {} to {}", remote.display(), local.display());
+            client.read_file_to_file(remote.as_path(), local.as_path());
+        }
+        DownloadMode::LastModifiedFile => {
+            let remote = remote_path.unwrap();
+            let local = local_path.unwrap();
+            if !client.isdir(remote.as_path()) {
+                eprintln!("Given remote path is not a directory");
+                return Some(ExitCode::from(8));
+            }
+            let mut path_contents = client.listdir(remote);
+            SortMode::LastCreated.sort(&mut path_contents);
+            let latest = path_contents[0].clone();
+            println!("Found latest to be {:?}", latest);
+            println!(
+                "Downloading {} to {}",
+                latest.path.display(),
+                local.display()
+            );
+            client.read_file_to_file(latest.path.as_path(), local.as_path());
+        }
+    }
+    None
+}
+
 fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitCode> {
     if args.size {
         println!("Getting size");
@@ -51,16 +87,15 @@ fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitC
                 }
             }
             SecondGenerationOptions::Download => {
-                let remote_path_buff = args.remote_path.unwrap().clone();
-                let local_path_buff = args.local_path.unwrap().clone();
-                let local_path = local_path_buff.as_path();
-                let remote_path = remote_path_buff.as_path();
-                if !client.path_exists(remote_path.to_path_buf()) {
-                    eprintln!("Given path does not exist");
-                    return Some(ExitCode::from(3)); // TODO: add constants for exit codes
+                let result = download(
+                    client,
+                    args.download_mode,
+                    args.local_path,
+                    args.remote_path,
+                );
+                if result.is_some() {
+                    return result;
                 }
-                println!("Download file");
-                client.read_file_to_file(remote_path, local_path);
             }
         }
     }
