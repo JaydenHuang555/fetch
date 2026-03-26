@@ -36,9 +36,14 @@ fn get_profile_manager() -> ProfileManager {
 }
 
 fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitCode> {
+    if args.size {
+        println!("Getting size");
+        println!("{:?}", client.dirsize(args.remote_path.clone().unwrap()));
+    }
     if let Some(second_gen_opts) = args.second_gen_opts {
         match second_gen_opts {
             SecondGenerationOptions::List => {
+                println!("Fetching Files");
                 let mut meta_data_list = client.listdir(args.remote_path.unwrap());
                 args.sort_mode.sort(&mut meta_data_list);
                 for e in meta_data_list {
@@ -54,6 +59,7 @@ fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitC
                     eprintln!("Given path does not exist");
                     return Some(ExitCode::from(3)); // TODO: add constants for exit codes
                 }
+                println!("Download file");
                 client.read_file_to_file(remote_path, local_path);
             }
         }

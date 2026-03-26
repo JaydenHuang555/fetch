@@ -17,4 +17,9 @@ pub trait RemoteFileSystem {
     fn listdir(&self, path: PathBuf) -> Vec<FileMetaData>;
 
     fn path_exists(&self, path: PathBuf) -> bool;
+
+    fn dirsize(&self, path: PathBuf) -> Option<u64> {
+        let meta_data = self.file_metadata(path);
+        meta_data.size.clone()
+    }
 }

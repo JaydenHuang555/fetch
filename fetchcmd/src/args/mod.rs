@@ -48,8 +48,13 @@ pub struct FetchArgs {
     pub second_gen_opts: Option<SecondGenerationOptions>,
 
     #[clap(long, short)]
+    #[clap(default_value_t = false)]
+    pub size: bool,
+
+    #[clap(long, short)]
     #[clap(required_if_eq("post", "list"))]
     #[clap(required_if_eq("post", "download"))]
+    #[clap(required_if_eq("size", "true"))]
     pub remote_path: Option<PathBuf>,
 
     #[clap(long)]
@@ -58,7 +63,7 @@ pub struct FetchArgs {
     pub local_path: Option<PathBuf>,
 
     #[clap(long)]
-    #[clap(default_value_t = SortMode::LastCreated)]
+    #[clap(default_value_t = SortMode::FirstCreated)]
     pub sort_mode: SortMode,
 }
 
