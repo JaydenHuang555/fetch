@@ -1,4 +1,5 @@
 pub mod client;
+pub mod helpers;
 pub mod inputs;
 pub mod key;
 pub mod metadata;

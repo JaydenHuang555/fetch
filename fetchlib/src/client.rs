@@ -1,8 +1,9 @@
 use rand::rng;
 use serde::Deserialize;
 use serde::Serialize;
-use ssh2::Session;
 use ssh_key::PrivateKey;
+use ssh2::Channel;
+use ssh2::Session;
 
 use std::fs;
 use std::io;
@@ -14,9 +15,12 @@ use std::path::PathBuf;
 use crate::inputs::Inputs;
 use crate::metadata::FileMetaData;
 use crate::remote_file_system::RemoteFileSystem;
+use crate::remote_file_system::error::Error;
 
 use std::net::SocketAddr;
 use std::net::TcpStream;
+
+use crate::helpers::remote_secure_shell_channel_close;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientInfo {
@@ -58,13 +62,40 @@ impl Client {
         });
     }
 
-    pub fn read_file_to_vec(&self, path: &Path, destination: &mut Vec<u8>) {
-        let (mut remote_file_channel, stat) = self.session.scp_recv(path).unwrap();
-        remote_file_channel.read_to_end(destination).unwrap();
-        remote_file_channel.send_eof().unwrap();
-        remote_file_channel.wait_eof().unwrap();
-        remote_file_channel.close().unwrap();
-        remote_file_channel.wait_close();
+    fn close_remote_channel(remote_file_channel: &mut Channel) -> Option<ssh2::Error> {
+        if let Err(e) = remote_file_channel.send_eof() {
+            return Some(e);
+        }
+        if let Err(e) = remote_file_channel.wait_eof() {
+            return Some(e);
+        }
+        if let Err(e) = remote_file_channel.close() {
+            return Some(e);
+        }
+        if let Err(e) = remote_file_channel.wait_close() {
+            return Some(e);
+        }
+        None
+    }
+
+    pub fn read_file_to_vec(&self, path: &Path, destination: &mut Vec<u8>) -> Result<usize, Error> {
+        let recv_operation = self.session.scp_recv(path);
+        if let Err(e) = recv_operation {
+            return Err(Error::from(e));
+        }
+        let (mut remote_file_channel, _) = recv_operation.unwrap();
+        let read_operation = remote_file_channel.read_to_end(destination);
+        match read_operation {
+            Ok(read_bytes) => {
+                if let Some(e) = remote_secure_shell_channel_close!(remote_file_channel) {
+                    return Err(Error::from(e));
+                }
+                return Ok(read_bytes);
+            }
+            Err(e) => {
+                return Err(Error::from(e));
+            }
+        }
     }
 
     pub fn read_file_to_file(&self, source: &Path, destination: &Path) {
