@@ -25,7 +25,7 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: task failed with code {}", self.code, self.display)
+        write!(f, "{}", self.display)
     }
 }
 
@@ -33,7 +33,7 @@ impl From<ssh2::Error> for Error {
     fn from(value: ssh2::Error) -> Self {
         Self {
             code: ExitCode::from(value.code()),
-            display: value.message().to_string(),
+            display: value.to_string(),
         }
     }
 }

@@ -47,7 +47,7 @@ pub fn download(
             let local = local_path.unwrap();
             let remote = remote_path.unwrap();
             println!("Downloading {} to {}", remote.display(), local.display());
-            if let Err(e) = client.read_file_to_file(remote.as_path(), local.as_path()) {
+            if let Err(e) = client.read_file_to_file(remote.as_path(), local.as_path(), false) {
                 eprintln!("Failure detected when downloading file: {}", e);
                 return Some(ExitCode::from(10));
             }
@@ -74,7 +74,7 @@ pub fn download(
                 latest.path.display(),
                 local.display()
             );
-            if let Err(e) = client.read_file_to_file(latest.path.as_path(), local.as_path()) {
+            if let Err(e) = client.read_file_to_file(latest.path.as_path(), local.as_path(), true) {
                 eprintln!("Failure detected when downloading file: {}", e);
                 return Some(ExitCode::from(10));
             }

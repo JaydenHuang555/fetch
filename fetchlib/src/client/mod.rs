@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use ssh2::Session;
 
+use crate::client::error::BlockedType;
 use crate::inputs::Inputs;
 use crate::remote_file_system::error::ExitCode;
 use std::fs;
@@ -95,33 +96,41 @@ impl Client {
             }
             Err(e) => {
                 let code = { if let Some(c) = e.raw_os_error() { c } else { 1 } };
-                return Err(Error::remote_io(ExitCode::SCP(code), None));
+                return Err(Error::remote_io(
+                    e,
+                    ExitCode::SCP(code),
+                    Some("failed to read from remote"),
+                ));
             }
         }
     }
 
-    pub fn read_file_to_file(&self, source: &Path, destination: &Path) -> Result<usize, Error> {
+    pub fn read_file_to_file(
+        &self,
+        source: &Path,
+        destination: &Path,
+        allow_override: bool,
+    ) -> Result<usize, Error> {
         let recv_operation = self.session.scp_recv(source);
         if let Err(e) = recv_operation {
-            return Err(Error::remote_ssh2(e, None));
+            return Err(Error::remote_ssh2(e, Some("Failed to recv file")));
         }
 
         let (mut remote_file_channel, _) = recv_operation.unwrap();
 
         let mut chunk = [0u8; 512];
 
-        if destination.exists() {
-            if let Err(e) = fs::remove_file(destination) {
-                return Err(Error::local_fs(
-                    e,
-                    Some("Unable to remove the destination file"),
-                ));
-            }
+        if destination.exists() && !allow_override {
+            return Err(Error::blocked(
+                BlockedType::FilePresent,
+                true,
+                Some("Destination file is already present"),
+            ));
         }
 
         let file_creation_operation = fs::File::create(destination);
 
-        if let Err(e) = fs::File::create_new(destination) {
+        if let Err(e) = file_creation_operation {
             return Err(Error::local_fs(
                 e,
                 Some("Unable to create the destination file"),
@@ -154,6 +163,7 @@ impl Client {
                         }
                     };
                     return Err(Error::remote_io(
+                        e,
                         ExitCode::SCP(error_code),
                         Some("Failed to read from remote source"),
                     ));
@@ -198,6 +208,7 @@ impl Client {
             Err(e) => {
                 let ec = { if let Some(c) = e.raw_os_error() { c } else { 1 } };
                 Err(Error::remote_io(
+                    e,
                     ExitCode::Session(ec),
                     Some("Failed to read remote's contents to string"),
                 ))

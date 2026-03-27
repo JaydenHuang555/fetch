@@ -1,4 +1,7 @@
-use crate::remote_file_system::{self, error::ExitCode};
+pub mod block;
+
+pub use crate::client::error::block::BlockedType;
+use crate::remote_file_system::{self, error::ExitCode, exit_code};
 
 #[derive(Debug)]
 pub enum ErrorKind {
@@ -6,6 +9,7 @@ pub enum ErrorKind {
     LocalFileSystem(std::io::Error),
     Unauthenticated,
     Connection(std::io::Error),
+    Blocked(BlockedType, bool),
 }
 
 impl std::fmt::Display for ErrorKind {
@@ -15,6 +19,18 @@ impl std::fmt::Display for ErrorKind {
             Self::LocalFileSystem(e) => write!(f, "local: {}", e),
             Self::Unauthenticated => write!(f, "Unable to authenticate"),
             Self::Connection(e) => write!(f, "Error in connection to stream: {}", e),
+            Self::Blocked(b, over) => {
+                write!(
+                    f,
+                    " {} blocked: {}",
+                    if *over {
+                        "overridable"
+                    } else {
+                        "unoverrideable"
+                    },
+                    b
+                )
+            }
         }
     }
 }
@@ -43,8 +59,11 @@ impl Error {
         }
     }
 
-    pub fn remote_io(e: ExitCode, display: Option<&'static str>) -> Self {
-        Self::remote_fs(remote_file_system::Error::new(e, "".to_string()), display)
+    pub fn remote_io(e: std::io::Error, code: ExitCode, display: Option<&'static str>) -> Self {
+        Self {
+            kind: ErrorKind::RemoteFileSystem(remote_file_system::Error::new(code, e.to_string())),
+            display,
+        }
     }
 
     pub fn remote_ssh2(e: ssh2::Error, display: Option<&'static str>) -> Self {
@@ -71,6 +90,13 @@ impl Error {
     pub fn connection(e: std::io::Error, display: Option<&'static str>) -> Self {
         Self {
             kind: ErrorKind::Connection(e),
+            display,
+        }
+    }
+
+    pub fn blocked(bt: BlockedType, can_override: bool, display: Option<&'static str>) -> Self {
+        Self {
+            kind: ErrorKind::Blocked(bt, can_override),
             display,
         }
     }
