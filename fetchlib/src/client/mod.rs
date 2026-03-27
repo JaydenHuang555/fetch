@@ -1,3 +1,4 @@
+pub mod error;
 pub mod helpers;
 mod remote;
 
@@ -6,6 +7,7 @@ use serde::Serialize;
 use ssh2::Session;
 
 use crate::inputs::Inputs;
+use crate::remote_file_system;
 use crate::remote_file_system::error::ExitCode;
 use std::fs;
 use std::io::prelude::*;
@@ -31,10 +33,27 @@ pub struct Client {
 
 impl Client {
     pub fn spawn(inputs: &Inputs) -> Result<Client, Error> {
-        let stream = TcpStream::connect(inputs.addr).unwrap();
-        let mut session = Session::new().unwrap();
+        let stream_open = TcpStream::connect(inputs.addr);
+        if let Err(e) = stream_open {
+            return Err(Error::connection(e, Some("Unable to open tcp stream")));
+        }
+        let stream = stream_open.unwrap();
+
+        let session_open = Session::new();
+
+        if let Err(e) = session_open {
+            return Err(Error::remote_ssh2(
+                e,
+                Some("Unable to establish new session"),
+            ));
+        }
+
+        let mut session = session_open.unwrap();
         session.set_tcp_stream(stream);
-        session.handshake().unwrap();
+
+        if let Err(e) = session.handshake() {
+            return Err(Error::remote_ssh2(e, Some("Failed to handshake session")));
+        }
 
         session
             .userauth_password(
