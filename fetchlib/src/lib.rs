@@ -1,6 +1,5 @@
 pub mod client;
 pub mod error;
-pub mod helpers;
 pub mod inputs;
 pub mod key;
 pub mod metadata;

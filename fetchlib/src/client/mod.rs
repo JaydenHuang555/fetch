@@ -1,31 +1,24 @@
-use rand::rng;
+pub mod helpers;
+mod remote;
+
 use serde::Deserialize;
 use serde::Serialize;
-use ssh_key::PrivateKey;
-use ssh2::Channel;
-use ssh2::ErrorCode;
 use ssh2::Session;
 
-use std::fs;
-use std::io;
-use std::io::prelude::*;
-use std::path;
-use std::path::Path;
-use std::path::PathBuf;
-
-use crate::helpers;
 use crate::inputs::Inputs;
 use crate::metadata::FileMetaData;
 use crate::remote_file_system::RemoteFileSystem;
-use crate::remote_file_system::error::EndPoint;
 use crate::remote_file_system::error::ExitCode;
+use std::fs;
+use std::io::prelude::*;
+use std::path::Path;
 
 use std::net::SocketAddr;
 use std::net::TcpStream;
 
 use crate::error::Error;
 
-use crate::helpers::remote_secure_shell_channel_close;
+use crate::client::helpers::remote_secure_shell_channel_close;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientInfo {
@@ -182,34 +175,5 @@ impl Client {
             }
         }
         false
-    }
-}
-
-impl RemoteFileSystem for Client {
-    fn file_metadata(&self, fpath: PathBuf) -> FileMetaData {
-        let stfp = self.session.sftp().unwrap();
-        let stat = stfp.stat(fpath.as_path()).unwrap();
-        let mut meta_data = FileMetaData::from(stat);
-        meta_data.path = fpath;
-        meta_data
-    }
-
-    fn listdir(&self, path: PathBuf) -> Vec<FileMetaData> {
-        let sftp = self.session.sftp().unwrap();
-        let contents = sftp.readdir(path).unwrap();
-        let output: Vec<FileMetaData> = contents
-            .into_iter()
-            .map(|c| {
-                let mut m = FileMetaData::from(c.1);
-                m.path = c.0;
-                m
-            })
-            .collect();
-        output
-    }
-
-    fn path_exists(&self, path: PathBuf) -> bool {
-        let sftp = self.session.sftp().unwrap();
-        sftp.stat(path.as_path()).is_ok()
     }
 }
