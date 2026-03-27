@@ -7,7 +7,6 @@ use serde::Serialize;
 use ssh2::Session;
 
 use crate::inputs::Inputs;
-use crate::remote_file_system;
 use crate::remote_file_system::error::ExitCode;
 use std::fs;
 use std::io::prelude::*;
@@ -16,7 +15,7 @@ use std::path::Path;
 use std::net::SocketAddr;
 use std::net::TcpStream;
 
-use crate::error::Error;
+pub use crate::client::error::Error;
 
 use crate::client::helpers::remote_secure_shell_channel_close;
 
