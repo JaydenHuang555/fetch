@@ -1,9 +1,12 @@
 pub mod error;
+pub mod exit_code;
 pub mod file;
 
 use std::path::{Path, PathBuf};
 
 use crate::{metadata::FileMetaData, remote_file_system::file::FileType};
+
+pub use crate::remote_file_system::error::Error;
 
 pub trait RemoteFileSystem {
     fn file_metadata(&self, fpath: PathBuf) -> FileMetaData;

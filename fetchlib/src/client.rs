@@ -3,6 +3,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use ssh_key::PrivateKey;
 use ssh2::Channel;
+use ssh2::ErrorCode;
 use ssh2::Session;
 
 use std::fs;
@@ -12,13 +13,17 @@ use std::path;
 use std::path::Path;
 use std::path::PathBuf;
 
+use crate::helpers;
 use crate::inputs::Inputs;
 use crate::metadata::FileMetaData;
 use crate::remote_file_system::RemoteFileSystem;
-use crate::remote_file_system::error::Error;
+use crate::remote_file_system::error::EndPoint;
+use crate::remote_file_system::error::ExitCode;
 
 use std::net::SocketAddr;
 use std::net::TcpStream;
+
+use crate::error::Error;
 
 use crate::helpers::remote_secure_shell_channel_close;
 
@@ -62,65 +67,98 @@ impl Client {
         });
     }
 
-    fn close_remote_channel(remote_file_channel: &mut Channel) -> Option<ssh2::Error> {
-        if let Err(e) = remote_file_channel.send_eof() {
-            return Some(e);
-        }
-        if let Err(e) = remote_file_channel.wait_eof() {
-            return Some(e);
-        }
-        if let Err(e) = remote_file_channel.close() {
-            return Some(e);
-        }
-        if let Err(e) = remote_file_channel.wait_close() {
-            return Some(e);
-        }
-        None
-    }
-
     pub fn read_file_to_vec(&self, path: &Path, destination: &mut Vec<u8>) -> Result<usize, Error> {
         let recv_operation = self.session.scp_recv(path);
         if let Err(e) = recv_operation {
-            return Err(Error::from(e));
+            return Err(Error::remote_ssh2(
+                e,
+                Some("Failed to open channel to remote file"),
+            ));
         }
         let (mut remote_file_channel, _) = recv_operation.unwrap();
         let read_operation = remote_file_channel.read_to_end(destination);
         match read_operation {
             Ok(read_bytes) => {
                 if let Some(e) = remote_secure_shell_channel_close!(remote_file_channel) {
-                    return Err(Error::from(e));
+                    return Err(Error::remote_ssh2(e, Some("Failed to close remote server")));
                 }
                 return Ok(read_bytes);
             }
             Err(e) => {
-                return Err(Error::from(e));
+                let code = { if let Some(c) = e.raw_os_error() { c } else { 1 } };
+                return Err(Error::remote_io(ExitCode::SCP(code), None));
             }
         }
     }
 
-    pub fn read_file_to_file(&self, source: &Path, destination: &Path) {
-        let (mut remote_file_channel, stat) = self.session.scp_recv(source).unwrap();
+    pub fn read_file_to_file(&self, source: &Path, destination: &Path) -> Result<usize, Error> {
+        let recv_operation = self.session.scp_recv(source);
+        if let Err(e) = recv_operation {
+            return Err(Error::remote_ssh2(e, None));
+        }
+
+        let (mut remote_file_channel, _) = recv_operation.unwrap();
 
         let mut chunk = [0u8; 512];
 
         if destination.exists() {
-            fs::remove_file(destination).unwrap();
+            if let Err(e) = fs::remove_file(destination) {
+                return Err(Error::local_fs(
+                    e,
+                    Some("Unable to remove the destination file"),
+                ));
+            }
         }
 
-        let mut fd = fs::File::create_new(destination).unwrap();
+        let file_creation_operation = fs::File::create(destination);
+
+        if let Err(e) = fs::File::create_new(destination) {
+            return Err(Error::local_fs(
+                e,
+                Some("Unable to create the destination file"),
+            ));
+        }
+
+        let mut fd = file_creation_operation.unwrap();
+
+        let mut transfered_bytes_total = 0;
 
         loop {
-            let read = remote_file_channel.read(&mut chunk).unwrap();
-            if read == 0 {
-                break;
+            match remote_file_channel.read(&mut chunk) {
+                Ok(read_bytes) => {
+                    if read_bytes == 0 {
+                        break;
+                    }
+                    if let Err(e) = fd.write_all(&chunk) {
+                        return Err(Error::local_fs(e, Some("Failed to write to destination")));
+                    }
+                    transfered_bytes_total = transfered_bytes_total + read_bytes;
+                }
+                Err(e) => {
+                    let error_code = {
+                        {
+                            if let Some(code) = e.raw_os_error() {
+                                code
+                            } else {
+                                1
+                            }
+                        }
+                    };
+                    return Err(Error::remote_io(
+                        ExitCode::SCP(error_code),
+                        Some("Failed to read from remote source"),
+                    ));
+                }
             }
-            fd.write_all(&chunk).unwrap();
         }
 
-        remote_file_channel.send_eof().unwrap();
-        remote_file_channel.wait_eof().unwrap();
-        remote_file_channel.close().unwrap();
-        remote_file_channel.wait_close().unwrap();
+        if let Some(e) = helpers::remote_secure_shell_channel_close!(remote_file_channel) {
+            return Err(Error::remote_ssh2(
+                e,
+                Some("Failed to close remote file channel"),
+            ));
+        }
+        Ok(transfered_bytes_total)
     }
 
     pub fn run_cmd<S: AsRef<str>>(&mut self, cmd: S) -> (i32, String) {

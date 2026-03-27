@@ -1,38 +1,39 @@
 use std::fmt::Display;
 use std::fmt::{self, Formatter};
-use std::process::ExitCode;
+
+pub use crate::remote_file_system::exit_code::ExitCode;
 
 use ssh2::ErrorCode;
 
 #[derive(Debug)]
-pub enum Error {
-    RemoteIOOperation(std::io::Error),
-    SecureShellOperation(ErrorCode, String),
+pub enum EndPoint {
+    Local,
+    Remote,
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        match self {
-            Self::RemoteIOOperation(e) => e.fmt(f),
-            Self::SecureShellOperation(code, msg) => write!(
-                f,
-                "Failed with {} to execute remote operation due to {}",
-                code, msg
-            ),
-        }
+#[derive(Debug)]
+pub struct Error {
+    pub code: ExitCode,
+    pub display: String,
+}
+
+impl Error {
+    pub fn new(code: ExitCode, display: String) -> Self {
+        Self { code, display }
     }
 }
 
-impl From<std::io::Error> for Error {
-    fn from(io_error: std::io::Error) -> Self {
-        Self::RemoteIOOperation(io_error)
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: task failed with code {}", self.code, self.display)
     }
 }
 
 impl From<ssh2::Error> for Error {
-    fn from(other: ssh2::Error) -> Error {
-        Self::SecureShellOperation(other.code(), other.message().to_string())
+    fn from(value: ssh2::Error) -> Self {
+        Self {
+            code: ExitCode::from(value.code()),
+            display: value.message().to_string(),
+        }
     }
 }
-
-impl std::error::Error for Error {}
