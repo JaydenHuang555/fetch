@@ -1,33 +1,47 @@
 pub mod error;
+pub mod exit_code;
 pub mod file;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use crate::{metadata::FileMetaData, remote_file_system::file::FileType};
+use crate::remote_file_system::file::{FileMetaData, FileType};
+
+pub use crate::remote_file_system::error::Error;
 
 pub trait RemoteFileSystem {
-    fn file_metadata(&self, fpath: PathBuf) -> FileMetaData;
+    fn file_metadata(&self, fpath: &Path) -> Result<FileMetaData, Error>;
 
-    fn files_metadata(&self, fpaths: Vec<PathBuf>) -> Vec<FileMetaData> {
+    fn files_metadata(&self, fpaths: Vec<&Path>) -> Result<Vec<FileMetaData>, Error> {
         let mut meta_data_list = Vec::new();
         for fpath in fpaths {
-            let meta_data = self.file_metadata(fpath);
-            meta_data_list.push(meta_data);
+            match self.file_metadata(fpath) {
+                Ok(meta_data) => meta_data_list.push(meta_data),
+                Err(e) => return Err(e),
+            }
         }
-        meta_data_list
+        Ok(meta_data_list)
     }
 
-    fn listdir(&self, path: PathBuf) -> Vec<FileMetaData>;
+    fn listdir(&self, path: &Path) -> Result<Vec<FileMetaData>, Error>;
 
-    fn path_exists(&self, path: PathBuf) -> bool;
+    fn path_exists(&self, path: &Path) -> bool {
+        match self.file_metadata(path) {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
 
-    fn dirsize(&self, path: PathBuf) -> Option<u64> {
-        let meta_data = self.file_metadata(path);
-        meta_data.size.clone()
+    fn dirsize(&self, path: &Path) -> Result<Option<u64>, Error> {
+        match self.file_metadata(path) {
+            Ok(meta_data) => Ok(meta_data.size.clone()),
+            Err(e) => Err(e),
+        }
     }
 
     fn isdir(&self, path: &Path) -> bool {
-        let meta_data = self.file_metadata(path.to_path_buf());
-        meta_data.ftype == FileType::Directory
+        match self.file_metadata(path) {
+            Ok(meta_data) => meta_data.ftype == FileType::Directory,
+            Err(_) => false,
+        }
     }
 }

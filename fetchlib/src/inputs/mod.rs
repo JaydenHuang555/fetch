@@ -10,6 +10,17 @@ pub struct Inputs {
     pub credentials: Credentials,
 }
 
+impl Inputs {
+    pub fn uri(&self) -> String {
+        format!(
+            "{}@{}:{}",
+            self.credentials.username,
+            self.addr.ip(),
+            self.addr.port()
+        )
+    }
+}
+
 impl Default for Inputs {
     fn default() -> Self {
         Self {

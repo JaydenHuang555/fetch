@@ -47,7 +47,11 @@ pub fn download(
             let local = local_path.unwrap();
             let remote = remote_path.unwrap();
             println!("Downloading {} to {}", remote.display(), local.display());
-            client.read_file_to_file(remote.as_path(), local.as_path());
+            if let Err(e) = client.read_file_to_file(remote.as_path(), local.as_path(), false) {
+                eprintln!("Failure detected when downloading file: {}", e);
+                return Some(ExitCode::from(10));
+            }
+            println!("Finished downloading file");
         }
         DownloadMode::LastModifiedFile => {
             let remote = remote_path.unwrap();
@@ -56,7 +60,12 @@ pub fn download(
                 eprintln!("Given remote path is not a directory");
                 return Some(ExitCode::from(8));
             }
-            let mut path_contents = client.listdir(remote);
+            let list_op = client.listdir(remote.as_path());
+            if let Err(e) = list_op {
+                eprintln!("Unable to fetch directory files due to {}", e);
+                return Some(ExitCode::from(5));
+            }
+            let mut path_contents = list_op.unwrap();
             SortMode::LastCreated.sort(&mut path_contents);
             let latest = path_contents[0].clone();
             println!("Found latest to be {:?}", latest);
@@ -65,7 +74,11 @@ pub fn download(
                 latest.path.display(),
                 local.display()
             );
-            client.read_file_to_file(latest.path.as_path(), local.as_path());
+            if let Err(e) = client.read_file_to_file(latest.path.as_path(), local.as_path(), true) {
+                eprintln!("Failure detected when downloading file: {}", e);
+                return Some(ExitCode::from(10));
+            }
+            println!("Finished downloading file");
         }
     }
     None
@@ -74,13 +87,21 @@ pub fn download(
 fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitCode> {
     if args.size {
         println!("Getting size");
-        println!("{:?}", client.dirsize(args.remote_path.clone().unwrap()));
+        println!(
+            "{:?}",
+            client.dirsize(args.remote_path.clone().unwrap().as_path())
+        );
     }
     if let Some(second_gen_opts) = args.second_gen_opts {
         match second_gen_opts {
             SecondGenerationOptions::List => {
                 println!("Fetching Files");
-                let mut meta_data_list = client.listdir(args.remote_path.unwrap());
+                let list_op = client.listdir(args.remote_path.clone().unwrap().as_path());
+                if let Err(e) = list_op {
+                    eprintln!("Unable to list directory due to {}", e);
+                    return Some(ExitCode::from(7));
+                }
+                let mut meta_data_list = list_op.unwrap();
                 args.sort_mode.sort(&mut meta_data_list);
                 for e in meta_data_list {
                     println!("{:?}", e);
@@ -102,18 +123,28 @@ fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitC
     None
 }
 
+fn secure_shell(profile_manager: ProfileManager, args: FetchArgs) -> Option<ExitCode> {
+    print!("Please enter the password: ");
+    stdout().flush().unwrap();
+    let pass = Secrets::get_pass(read_password().unwrap());
+    let inputs = args.action.get_ssh_inputs(profile_manager, pass).unwrap();
+
+    match Client::spawn(&inputs) {
+        Ok(client) => handle_ssh_second_generation(client, args),
+        Err(e) => {
+            eprintln!("Unable to open client to {} due to {}", inputs.uri(), e);
+            return Some(ExitCode::from(18));
+        }
+    }
+}
+
 fn fetchcmd(args: FetchArgs) -> ExitCode {
     let profile_manager = get_profile_manager();
     match args.action {
         Subcommands::Generation(options) => generation(options),
         Subcommands::SecureShell(_) | Subcommands::Profile(_) => {
-            print!("Please enter the password: ");
-            stdout().flush().unwrap();
-            let pass = Secrets::get_pass(read_password().unwrap());
-            let inputs = args.action.get_ssh_inputs(profile_manager, pass).unwrap();
-            let client = Client::spawn(&inputs).unwrap();
-            if let Some(exit_code) = handle_ssh_second_generation(client, args) {
-                return exit_code;
+            if let Some(e) = secure_shell(profile_manager, args) {
+                return e;
             }
         }
     }
