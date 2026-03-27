@@ -78,10 +78,12 @@ impl Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let reason = self.kind.to_string();
         if let Some(msg) = self.display {
-            return write!(f, "{}", msg);
+            return write!(f, "({}): {}", msg, reason);
+        } else {
+            return write!(f, "{}", reason);
         }
-        self.kind.fmt(f)
     }
 }
 
