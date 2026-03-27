@@ -4,7 +4,7 @@ pub mod file;
 
 use std::path::Path;
 
-use crate::{metadata::FileMetaData, remote_file_system::file::FileType};
+use crate::remote_file_system::file::{FileMetaData, FileType};
 
 pub use crate::remote_file_system::error::Error;
 
@@ -24,10 +24,10 @@ pub trait RemoteFileSystem {
 
     fn listdir(&self, path: &Path) -> Result<Vec<FileMetaData>, Error>;
 
-    fn path_exists(&self, path: &Path) -> Result<bool, Error> {
+    fn path_exists(&self, path: &Path) -> bool {
         match self.file_metadata(path) {
-            Ok(_) => Ok(true),
-            Err(e) => Err(e),
+            Ok(_) => true,
+            Err(_) => false,
         }
     }
 
@@ -38,10 +38,10 @@ pub trait RemoteFileSystem {
         }
     }
 
-    fn isdir(&self, path: &Path) -> Result<bool, Error> {
+    fn isdir(&self, path: &Path) -> bool {
         match self.file_metadata(path) {
-            Ok(meta_data) => Ok(meta_data.ftype == FileType::Directory),
-            Err(e) => Err(e),
+            Ok(meta_data) => meta_data.ftype == FileType::Directory,
+            Err(_) => false,
         }
     }
 }

@@ -6,8 +6,6 @@ use serde::Serialize;
 use ssh2::Session;
 
 use crate::inputs::Inputs;
-use crate::metadata::FileMetaData;
-use crate::remote_file_system::RemoteFileSystem;
 use crate::remote_file_system::error::ExitCode;
 use std::fs;
 use std::io::prelude::*;
@@ -32,7 +30,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn spawn(inputs: &Inputs) -> Result<Client, bool> {
+    pub fn spawn(inputs: &Inputs) -> Result<Client, Error> {
         let stream = TcpStream::connect(inputs.addr).unwrap();
         let mut session = Session::new().unwrap();
         session.set_tcp_stream(stream);
@@ -46,7 +44,7 @@ impl Client {
             .unwrap();
 
         if !session.authenticated() {
-            return Result::Err(false);
+            return Result::Err(Error::unathenticated(Some("Failed to authenticate client")));
         }
 
         // TODO: handle agent
@@ -154,13 +152,39 @@ impl Client {
         Ok(transfered_bytes_total)
     }
 
-    pub fn run_cmd<S: AsRef<str>>(&mut self, cmd: S) -> (i32, String) {
-        let mut channel = self.session.channel_session().unwrap();
-        channel.exec(cmd.as_ref()).unwrap();
+    pub fn run_cmd<S: AsRef<str>>(&mut self, cmd: S) -> Result<(i32, String), Error> {
+        let channel_op = self.session.channel_session();
+        if let Err(e) = channel_op {
+            return Err(Error::remote_ssh2(e, Some("Failed to open channel stream")));
+        }
+        let mut channel = channel_op.unwrap();
+
+        if let Err(e) = channel.exec(cmd.as_ref()) {
+            return Err(Error::remote_ssh2(e, Some("Failed to execute command")));
+        }
+
         let mut output = String::new();
-        channel.read_to_string(&mut output).unwrap();
-        channel.wait_close().unwrap();
-        (channel.exit_status().unwrap(), output)
+
+        match channel.read_to_string(&mut output) {
+            Ok(_) => {
+                if let Err(e) = channel.wait_close() {
+                    return Err(Error::remote_ssh2(e, Some("Failed to close channel")));
+                }
+                let exit_stat_op = channel.exit_status();
+                if let Err(e) = exit_stat_op {
+                    return Err(Error::remote_ssh2(e, None));
+                }
+                let exit_stat = exit_stat_op.unwrap();
+                Ok((exit_stat, output))
+            }
+            Err(e) => {
+                let ec = { if let Some(c) = e.raw_os_error() { c } else { 1 } };
+                Err(Error::remote_io(
+                    ExitCode::Session(ec),
+                    Some("Failed to read remote's contents to string"),
+                ))
+            }
+        }
     }
 
     pub fn contains_username_key(username: String) -> bool {

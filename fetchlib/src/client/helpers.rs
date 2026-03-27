@@ -1,5 +1,3 @@
-use crate::remote_file_system;
-
 macro_rules! remote_secure_shell_channel_close {
     ($remote_channel:expr) => {{
         if let Err(e) = $remote_channel.send_eof() {

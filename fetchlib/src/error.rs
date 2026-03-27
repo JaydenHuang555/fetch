@@ -4,6 +4,7 @@ use crate::remote_file_system::{self, error::ExitCode};
 pub enum ErrorKind {
     RemoteFileSystem(remote_file_system::error::Error),
     LocalFileSystem(std::io::Error),
+    Unauthenticated,
 }
 
 impl std::fmt::Display for ErrorKind {
@@ -11,6 +12,7 @@ impl std::fmt::Display for ErrorKind {
         match self {
             Self::RemoteFileSystem(e) => write!(f, "remote: {}", e),
             Self::LocalFileSystem(e) => write!(f, "local: {}", e),
+            Self::Unauthenticated => write!(f, "Unable to authenticate"),
         }
     }
 }
@@ -35,7 +37,10 @@ pub struct Error {
 
 macro_rules! new_error {
     ($held_internal:expr, $display_opt:expr) => {
-        Self::new(ErrorKind::from($held_internal), $display_opt)
+        Self {
+            kind: ErrorKind::from($held_internal),
+            display: $display_opt,
+        }
     };
 }
 
@@ -61,6 +66,13 @@ impl Error {
 
     pub fn local_fs(e: std::io::Error, display: Option<&'static str>) -> Self {
         new_error!(e, display)
+    }
+
+    pub fn unathenticated(display: Option<&'static str>) -> Self {
+        Self {
+            kind: ErrorKind::Unauthenticated,
+            display,
+        }
     }
 }
 

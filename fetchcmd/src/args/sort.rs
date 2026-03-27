@@ -1,5 +1,5 @@
 use clap::ValueEnum;
-use fetchlib::metadata::FileMetaData;
+use fetchlib::remote_file_system::file::FileMetaData;
 
 #[derive(Clone, ValueEnum, Debug)]
 pub enum SortMode {
