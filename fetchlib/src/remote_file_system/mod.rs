@@ -24,6 +24,22 @@ pub trait RemoteFileSystem {
 
     fn listdir(&self, path: &Path) -> Result<Vec<FileMetaData>, Error>;
 
+    fn last_mod_file(&self, path: &Path) -> Result<FileMetaData, Error> {
+        match self.listdir(path) {
+            Ok(mut meta_datas) => {
+                meta_datas.sort_by(|a, b| {
+                    b.mtime
+                        .unwrap_or_default()
+                        .cmp(&a.mtime.unwrap_or_default())
+                });
+                return Ok(meta_datas[0].clone());
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
+    }
+
     fn path_exists(&self, path: &Path) -> bool {
         match self.file_metadata(path) {
             Ok(_) => true,

@@ -65,9 +65,7 @@ pub fn download(
                 eprintln!("Unable to fetch directory files due to {}", e);
                 return Some(ExitCode::from(5));
             }
-            let mut path_contents = list_op.unwrap();
-            SortMode::LastCreated.sort(&mut path_contents);
-            let latest = path_contents[0].clone();
+            let latest = client.last_mod_file(remote.as_path()).unwrap();
             println!("Found latest to be {:?}", latest);
             println!(
                 "Downloading {} to {}",
