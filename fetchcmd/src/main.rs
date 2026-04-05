@@ -17,7 +17,7 @@ use fetchlib::client::Client;
 use serde::de;
 
 use crate::{
-    args::{FetchArgs, SecondGenerationOptions, download_mode::DownloadMode, sort::SortMode},
+    args::{FetchArgs, SecondGenerationOptions, download_mode::DownloadMode},
     constants::INSTANCE,
     subcommands::generation_options::GenerationOptions,
 };
@@ -100,7 +100,7 @@ fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitC
                     return Some(ExitCode::from(7));
                 }
                 let mut meta_data_list = list_op.unwrap();
-                args.sort_mode.sort(&mut meta_data_list);
+                args.sort_mode.sort_vector(&mut meta_data_list);
                 for e in meta_data_list {
                     println!("{:?}", e);
                 }
