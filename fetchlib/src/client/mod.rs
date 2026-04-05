@@ -1,5 +1,4 @@
 pub mod error;
-pub mod helpers;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -9,6 +8,7 @@ use crate::client::error::BlockedType;
 use crate::inputs::Inputs;
 use crate::remote_file_system::error::ExitCode;
 use crate::sftp::Sftp;
+use crate::util;
 use std::fs;
 use std::io::prelude::*;
 use std::path::Path;
@@ -18,7 +18,7 @@ use std::net::TcpStream;
 
 pub use crate::client::error::Error;
 
-use crate::client::helpers::remote_secure_shell_channel_close;
+use crate::util::ssh2::remote_secure_shell_channel_close;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientInfo {
@@ -153,15 +153,7 @@ impl Client {
                     transfered_bytes_total = transfered_bytes_total + read_bytes;
                 }
                 Err(e) => {
-                    let error_code = {
-                        {
-                            if let Some(code) = e.raw_os_error() {
-                                code
-                            } else {
-                                1
-                            }
-                        }
-                    };
+                    let error_code = util::io::error_code!(e.raw_os_error());
                     return Err(Error::remote_io(
                         e,
                         ExitCode::SCP(error_code),
@@ -171,7 +163,7 @@ impl Client {
             }
         }
 
-        if let Some(e) = helpers::remote_secure_shell_channel_close!(remote_file_channel) {
+        if let Some(e) = remote_secure_shell_channel_close!(remote_file_channel) {
             return Err(Error::remote_ssh2(
                 e,
                 Some("Failed to close remote file channel"),
