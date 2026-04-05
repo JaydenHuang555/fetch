@@ -2,6 +2,13 @@ use std::path::PathBuf;
 
 use ssh2::FileStat;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FileSortType {
+    FirstCreated,
+    LastCreated,
+    LastModified,
+}
+
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum FileType {
     NamedPipe,
