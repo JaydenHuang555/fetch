@@ -7,7 +7,6 @@ use ssh2::Session;
 
 use crate::client::error::BlockedType;
 use crate::inputs::Inputs;
-use crate::remote_file_system;
 use crate::remote_file_system::error::ExitCode;
 use crate::sftp::Sftp;
 use std::fs;

@@ -1,16 +1,8 @@
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
-
-use rand::Rng;
 use rand::RngExt;
-use rand::distr::Alphabetic;
 use rand::distr::Alphanumeric;
-use rand::rngs::ThreadRng;
-use serde::Deserialize;
-use serde::Serialize;
 use ssh_key::PrivateKey;
 use ssh_key::rand_core::OsRng;
+use std::path::PathBuf;
 
 pub mod credentials;
 

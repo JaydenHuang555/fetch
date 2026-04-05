@@ -1,8 +1,4 @@
-use crate::{
-    remote_interact::RemoteTransferProtocol,
-    sftp::{self, Sftp},
-    util::ssh2::Error,
-};
+use crate::{remote_interact::RemoteTransferProtocol, sftp::Sftp, util::ssh2::Error};
 
 use std::io::{Read, Write};
 use std::path::Path;

@@ -1,7 +1,7 @@
 pub mod block;
 
 pub use crate::client::error::block::BlockedType;
-use crate::remote_file_system::{self, error::ExitCode, exit_code};
+use crate::remote_file_system::{self, error::ExitCode};
 
 #[derive(Debug)]
 pub enum ErrorKind {
