@@ -1,16 +1,8 @@
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
-
-use rand::Rng;
 use rand::RngExt;
-use rand::distr::Alphabetic;
 use rand::distr::Alphanumeric;
-use rand::rngs::ThreadRng;
-use serde::Deserialize;
-use serde::Serialize;
 use ssh_key::PrivateKey;
 use ssh_key::rand_core::OsRng;
+use std::path::PathBuf;
 
 pub mod credentials;
 
@@ -23,14 +15,12 @@ pub struct Secrets {
 impl Secrets {
     pub fn gen_key(password: Option<String>) -> PrivateKey {
         let generated = PrivateKey::random(&mut OsRng, ssh_key::Algorithm::Ed25519).unwrap();
-        let pass;
-        if password.is_none() {
-            pass = String::new();
+        let pass = if password.is_none() {
+            String::new()
         } else {
-            pass = password.unwrap();
-        }
-        let encrypted = generated.encrypt(&mut OsRng, pass).unwrap();
-        encrypted
+            password.unwrap()
+        };
+        generated.encrypt(&mut OsRng, pass).unwrap()
     }
 
     pub fn gen_name() -> String {
@@ -60,10 +50,6 @@ impl Secrets {
     }
 
     pub fn get_pass(pass: String) -> Option<String> {
-        if pass.is_empty() {
-            return None;
-        } else {
-            return Some(pass);
-        }
+        if pass.is_empty() { None } else { Some(pass) }
     }
 }

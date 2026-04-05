@@ -12,7 +12,7 @@ impl RemoteFileSystem for Sftp {
             Ok(stat) => {
                 let mut meta_data = FileMetaData::from(stat);
                 meta_data.path = fpath.to_path_buf();
-                return Ok(meta_data);
+                Ok(meta_data)
             }
             Err(e) => Err(Error::from(e)),
         }
@@ -29,9 +29,9 @@ impl RemoteFileSystem for Sftp {
                         m
                     })
                     .collect();
-                return Ok(output);
+                Ok(output)
             }
-            Err(e) => return Err(Error::from(e)),
+            Err(e) => Err(Error::from(e)),
         }
     }
 }

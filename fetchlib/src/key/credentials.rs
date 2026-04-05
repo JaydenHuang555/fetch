@@ -54,9 +54,9 @@ impl<'de> Deserialize<'de> for Credentials {
 impl Credentials {
     pub fn generate_opt_pass(content: String) -> Option<String> {
         if content.is_empty() {
-            return None;
+            None
         } else {
-            return Some(content);
+            Some(content)
         }
     }
 

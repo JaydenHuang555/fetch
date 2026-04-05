@@ -13,8 +13,8 @@ pub static PROJECT_INSTANCE: Lazy<Mutex<ProjectDirSINGLETON>> = Lazy::new(|| {
     })
 });
 
-macro_rules! proj_dir {
-    () => {
-        PROJECT_INSTANCE.lock().unwrap().dir
-    };
-}
+// macro_rules! proj_dir {
+//     () => {
+//         PROJECT_INSTANCE.lock().unwrap().dir
+//     };
+// }

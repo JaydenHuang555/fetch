@@ -40,7 +40,7 @@ impl Error {
 
     pub fn local_io(e: std::io::Error, display: Option<&'static str>) -> Self {
         Self {
-            kind: ErrorKind::LocalIO((e)),
+            kind: ErrorKind::LocalIO(e),
             display,
         }
     }

@@ -3,8 +3,6 @@ use std::fmt::{self, Formatter};
 
 pub use crate::remote_file_system::exit_code::ExitCode;
 
-use ssh2::ErrorCode;
-
 #[derive(Debug)]
 pub enum EndPoint {
     Local,
