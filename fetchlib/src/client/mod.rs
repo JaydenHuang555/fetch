@@ -152,7 +152,7 @@ impl Client {
                     if let Err(e) = fd.write_all(&chunk) {
                         return Err(Error::local_fs(e, Some("Failed to write to destination")));
                     }
-                    transfered_bytes_total = transfered_bytes_total + read_bytes;
+                    transfered_bytes_total += read_bytes;
                 }
                 Err(e) => {
                     let error_code = util::io::error_code!(e.raw_os_error());
