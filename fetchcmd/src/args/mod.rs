@@ -1,5 +1,4 @@
 pub mod download_mode;
-pub mod sort;
 
 use crate::args::download_mode::DownloadMode;
 use std::path::PathBuf;
@@ -8,8 +7,8 @@ use std::str::FromStr;
 use clap::Parser;
 use clap::ValueEnum;
 use clap::ValueHint;
+use fetchlib::fs::sort::FileSortType;
 
-use crate::args::sort::SortMode;
 use crate::subcommands::Subcommands;
 
 #[derive(Clone, ValueEnum, Debug)]
@@ -65,8 +64,8 @@ pub struct FetchArgs {
     pub local_path: Option<PathBuf>,
 
     #[clap(long)]
-    #[clap(default_value_t = SortMode::FirstCreated)]
-    pub sort_mode: SortMode,
+    #[clap(default_value_t = FileSortType::LastModified)]
+    pub sort_mode: FileSortType,
 
     #[clap(long)]
     #[clap(default_value_t = DownloadMode::RemoteFile)]

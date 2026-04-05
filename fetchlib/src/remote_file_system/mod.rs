@@ -1,10 +1,10 @@
 pub mod error;
 pub mod exit_code;
-pub mod file;
+pub mod sftp;
 
 use std::path::Path;
 
-use crate::remote_file_system::file::{FileMetaData, FileType};
+use crate::fs::{FileMetaData, FileType};
 
 pub use crate::remote_file_system::error::Error;
 

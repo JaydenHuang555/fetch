@@ -1,7 +1,7 @@
 use crate::client::Client;
+use crate::fs::FileMetaData;
 use crate::remote_file_system::Error;
 use crate::remote_file_system::RemoteFileSystem;
-use crate::remote_file_system::file::FileMetaData;
 use std::path::Path;
 
 impl RemoteFileSystem for Client {
