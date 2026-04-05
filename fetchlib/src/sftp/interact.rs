@@ -31,13 +31,13 @@ impl RemoteTransferProtocol for Sftp {
                     if read_chunk_bytes == 0 {
                         break;
                     }
-                    if let Err(e) = destination_file.write_all(&mut chunk) {
+                    if let Err(e) = destination_file.write_all(&chunk) {
                         return Err(Error::local_io(
                             e,
                             Some("Failed to write read contents to destination"),
                         ));
                     }
-                    read_bytes = read_bytes + read_chunk_bytes;
+                    read_bytes += read_chunk_bytes;
                 }
                 Err(e) => {
                     return Err(Error::remote_io(e, Some("Failed to read source to chunk")));

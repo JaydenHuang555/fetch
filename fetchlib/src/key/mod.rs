@@ -15,14 +15,12 @@ pub struct Secrets {
 impl Secrets {
     pub fn gen_key(password: Option<String>) -> PrivateKey {
         let generated = PrivateKey::random(&mut OsRng, ssh_key::Algorithm::Ed25519).unwrap();
-        let pass;
-        if password.is_none() {
-            pass = String::new();
+        let pass = if password.is_none() {
+            String::new()
         } else {
-            pass = password.unwrap();
-        }
-        let encrypted = generated.encrypt(&mut OsRng, pass).unwrap();
-        encrypted
+            password.unwrap()
+        };
+        generated.encrypt(&mut OsRng, pass).unwrap()
     }
 
     pub fn gen_name() -> String {
@@ -52,10 +50,6 @@ impl Secrets {
     }
 
     pub fn get_pass(pass: String) -> Option<String> {
-        if pass.is_empty() {
-            return None;
-        } else {
-            return Some(pass);
-        }
+        if pass.is_empty() { None } else { Some(pass) }
     }
 }

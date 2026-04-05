@@ -15,6 +15,7 @@ use std::path::Path;
 
 use std::net::SocketAddr;
 use std::net::TcpStream;
+use std::time::Duration;
 
 pub use crate::client::error::Error;
 
@@ -90,17 +91,18 @@ impl Client {
         match read_operation {
             Ok(read_bytes) => {
                 if let Some(e) = remote_secure_shell_channel_close!(remote_file_channel) {
-                    return Err(Error::remote_ssh2(e, Some("Failed to close remote server")));
+                    Err(Error::remote_ssh2(e, Some("Failed to close remote server")))
+                } else {
+                    Ok(read_bytes)
                 }
-                return Ok(read_bytes);
             }
             Err(e) => {
                 let code = { if let Some(c) = e.raw_os_error() { c } else { 1 } };
-                return Err(Error::remote_io(
+                Err(Error::remote_io(
                     e,
                     ExitCode::SCP(code),
                     Some("failed to read from remote"),
-                ));
+                ))
             }
         }
     }
@@ -163,13 +165,13 @@ impl Client {
             }
         }
 
-        if let Some(e) = remote_secure_shell_channel_close!(remote_file_channel) {
-            return Err(Error::remote_ssh2(
+        match remote_secure_shell_channel_close!(remote_file_channel) {
+            Some(e) => Err(Error::remote_ssh2(
                 e,
                 Some("Failed to close remote file channel"),
-            ));
+            )),
+            None => Ok(transfered_bytes_total),
         }
-        Ok(transfered_bytes_total)
     }
 
     pub fn run_cmd<S: AsRef<str>>(&mut self, cmd: S) -> Result<(i32, String), Error> {
@@ -198,7 +200,7 @@ impl Client {
                 Ok((exit_stat, output))
             }
             Err(e) => {
-                let ec = { if let Some(c) = e.raw_os_error() { c } else { 1 } };
+                let ec = util::io::error_code!(e.raw_os_error());
                 Err(Error::remote_io(
                     e,
                     ExitCode::Session(ec),
@@ -227,5 +229,13 @@ impl Client {
             }
         }
         false
+    }
+
+    pub fn can_connect_timeout(inputs: &Inputs, timeout: Duration) -> bool {
+        TcpStream::connect_timeout(&inputs.addr, timeout).is_ok()
+    }
+
+    pub fn can_connect(inputs: &Inputs) -> bool {
+        Self::can_connect_timeout(inputs, Duration::from_millis(200))
     }
 }

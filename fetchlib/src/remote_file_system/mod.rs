@@ -35,11 +35,9 @@ pub trait RemoteFileSystem {
                         .unwrap_or_default()
                         .cmp(&a.mtime.unwrap_or_default())
                 });
-                return Ok(meta_datas[0].clone());
+                Ok(meta_datas[0].clone())
             }
-            Err(e) => {
-                return Err(e);
-            }
+            Err(e) => Err(e),
         }
     }
 
@@ -57,10 +55,7 @@ pub trait RemoteFileSystem {
     }
 
     fn path_exists(&self, path: &Path) -> bool {
-        match self.file_metadata(path) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        self.file_metadata(path).is_ok()
     }
 
     fn dirsize(&self, path: &Path) -> Result<Option<u64>, Error> {

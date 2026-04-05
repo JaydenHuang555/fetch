@@ -1,5 +1,6 @@
 use std::path::Path;
 
+// TODO: populate
 pub trait RemoteTransferProtocol {
     type Error: std::error::Error;
 
