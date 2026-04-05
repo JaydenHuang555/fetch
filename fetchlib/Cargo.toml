@@ -1,6 +1,6 @@
 [package]
 name = "fetchlib"
-version = "0.0.12"
+version = "0.0.13"
 edition = "2024"
 authors = ["Jiei Huang <jaydenkanahuang@outlook.com>"]
 description = "A lib for remote server connection through ssh"
