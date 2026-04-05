@@ -1,6 +1,5 @@
 pub mod error;
 pub mod helpers;
-mod remote;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -8,7 +7,9 @@ use ssh2::Session;
 
 use crate::client::error::BlockedType;
 use crate::inputs::Inputs;
+use crate::remote_file_system;
 use crate::remote_file_system::error::ExitCode;
+use crate::sftp::Sftp;
 use std::fs;
 use std::io::prelude::*;
 use std::path::Path;
@@ -32,7 +33,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn spawn(inputs: &Inputs) -> Result<Client, Error> {
+    pub fn spawn_ssh(inputs: &Inputs) -> Result<Client, Error> {
         let stream_open = TcpStream::connect(inputs.addr);
         if let Err(e) = stream_open {
             return Err(Error::connection(e, Some("Unable to open tcp stream")));
@@ -213,6 +214,13 @@ impl Client {
                     Some("Failed to read remote's contents to string"),
                 ))
             }
+        }
+    }
+
+    pub fn sftp(&self) -> Result<Sftp, Error> {
+        match self.session.sftp() {
+            Ok(sfto) => Ok(Sftp::from(sfto)),
+            Err(e) => Err(Error::remote_ssh2(e, Some("Failed to create sftp"))),
         }
     }
 

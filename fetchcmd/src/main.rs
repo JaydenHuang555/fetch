@@ -56,16 +56,23 @@ pub fn download(
         DownloadMode::LastModifiedFile => {
             let remote = remote_path.unwrap();
             let local = local_path.unwrap();
-            if !client.isdir(remote.as_path()) {
+            let sftp_operation = client.sftp();
+            if let Err(e) = sftp_operation {
+                eprintln!("Failed to get sftp due to {}", e);
+                return Some(ExitCode::from(75));
+            }
+            println!("Finished starting sftp");
+            let sftp = sftp_operation.unwrap();
+            if !sftp.isdir(remote.as_path()) {
                 eprintln!("Given remote path is not a directory");
                 return Some(ExitCode::from(8));
             }
-            let list_op = client.listdir(remote.as_path());
+            let list_op = sftp.listdir(remote.as_path());
             if let Err(e) = list_op {
                 eprintln!("Unable to fetch directory files due to {}", e);
                 return Some(ExitCode::from(5));
             }
-            let latest = client.last_mod_file(remote.as_path()).unwrap();
+            let latest = sftp.last_mod_file(remote.as_path()).unwrap();
             println!("Found latest to be {:?}", latest);
             println!(
                 "Downloading {} to {}",
@@ -85,16 +92,31 @@ pub fn download(
 fn handle_ssh_second_generation(client: Client, args: FetchArgs) -> Option<ExitCode> {
     if args.size {
         println!("Getting size");
+        let sftp_operation = client.sftp();
+        if let Err(e) = sftp_operation {
+            eprintln!("Failed to get sftp due to {}", e);
+            return Some(ExitCode::from(75));
+        }
+        println!("Finished starting sftp");
+        let sftp = sftp_operation.unwrap();
         println!(
             "{:?}",
-            client.dirsize(args.remote_path.clone().unwrap().as_path())
+            sftp.dirsize(args.remote_path.clone().unwrap().as_path())
         );
     }
     if let Some(second_gen_opts) = args.second_gen_opts {
         match second_gen_opts {
             SecondGenerationOptions::List => {
                 println!("Fetching Files");
-                let list_op = client.listdir(args.remote_path.clone().unwrap().as_path());
+                println!("Starting sftp");
+                let sftp_operation = client.sftp();
+                if let Err(e) = sftp_operation {
+                    eprintln!("Failed to get sftp due to {}", e);
+                    return Some(ExitCode::from(75));
+                }
+                let sftp = sftp_operation.unwrap();
+                println!("Finished starting sftp");
+                let list_op = sftp.listdir(args.remote_path.clone().unwrap().as_path());
                 if let Err(e) = list_op {
                     eprintln!("Unable to list directory due to {}", e);
                     return Some(ExitCode::from(7));
@@ -127,7 +149,7 @@ fn secure_shell(profile_manager: ProfileManager, args: FetchArgs) -> Option<Exit
     let pass = Secrets::get_pass(read_password().unwrap());
     let inputs = args.action.get_ssh_inputs(profile_manager, pass).unwrap();
 
-    match Client::spawn(&inputs) {
+    match Client::spawn_ssh(&inputs) {
         Ok(client) => handle_ssh_second_generation(client, args),
         Err(e) => {
             eprintln!("Unable to open client to {} due to {}", inputs.uri(), e);

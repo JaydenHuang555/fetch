@@ -1,6 +1,5 @@
 pub mod error;
 pub mod exit_code;
-pub mod sftp;
 
 use std::path::Path;
 
