@@ -1,29 +1,24 @@
-use super::Error;
+use crate::remote_file_system::Error;
 use crate::{fs::FileMetaData, remote_file_system::RemoteFileSystem};
 
-pub struct Sftp {
-    sftp: ssh2::Sftp,
-}
+use crate::sftp::Sftp;
 
 impl RemoteFileSystem for Sftp {
     fn file_metadata(
         &self,
         fpath: &std::path::Path,
-    ) -> Result<crate::fs::FileMetaData, super::Error> {
+    ) -> Result<crate::fs::FileMetaData, crate::remote_file_system::Error> {
         match self.sftp.stat(fpath) {
             Ok(stat) => {
                 let mut meta_data = FileMetaData::from(stat);
                 meta_data.path = fpath.to_path_buf();
                 return Ok(meta_data);
             }
-            Err(e) => Err(super::Error::from(e)),
+            Err(e) => Err(Error::from(e)),
         }
     }
 
-    fn listdir(
-        &self,
-        path: &std::path::Path,
-    ) -> Result<Vec<crate::fs::FileMetaData>, super::Error> {
+    fn listdir(&self, path: &std::path::Path) -> Result<Vec<crate::fs::FileMetaData>, Error> {
         match self.sftp.readdir(path) {
             Ok(contents) => {
                 let output: Vec<FileMetaData> = contents
